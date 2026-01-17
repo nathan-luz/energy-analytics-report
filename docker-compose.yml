@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres_energy_report
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init_db:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: n8n_energy_report
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
+      - WEBHOOK_URL=http://localhost:5678/
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./.n8n_data:/home/node/.n8n
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  n8n_data:
