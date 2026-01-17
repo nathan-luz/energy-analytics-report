@@ -1,0 +1,242 @@
+{
+  "name": "Report Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "generate-usage-report",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        20,
+        0
+      ],
+      "id": "9826410d-f3d4-4f00-8ab3-57d6fcdcb8a4",
+      "name": "Webhook",
+      "webhookId": "7020ef71-91b4-4838-8019-95aa626f5fea"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH stats_calculadas AS (\n    SELECT\n        c.name AS client_name,\n        AVG(r.reading_kwh) FILTER (WHERE r.ref_date >= CURRENT_DATE - INTERVAL '3 months') AS last_3m_avg,\n        AVG(r.reading_kwh) AS historical_avg,\n        COALESCE(STDDEV(r.reading_kwh), 0) AS stddev\n    FROM customers c\n    JOIN contracts ct ON c.id = ct.customer_id\n    JOIN readings r ON ct.id = r.contract_id\n    GROUP BY c.name\n)SELECT\n    client_name,\n    ROUND(last_3m_avg::numeric, 2) AS last_3m_avg_kwh,\n    ROUND(historical_avg::numeric, 2) AS historical_avg_kwh,\n    stddev,\n\n    CASE\n        WHEN stddev = 0 THEN 'no historical data'\n        WHEN last_3m_avg IS NULL THEN 'no recent data'\n        WHEN ABS((last_3m_avg - historical_avg) / stddev) > 1.5 THEN 'outlier'\n        ELSE 'normal'\n    END AS status FROM stats_calculadas;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        240,
+        0
+      ],
+      "id": "3d676695-54ef-4e98-bad7-dc1bd64e6fde",
+      "name": "Postgres",
+      "credentials": {
+        "postgres": {
+          "id": "BVyOMgucaMmC6s4l",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        1420,
+        0
+      ],
+      "id": "cf85d727-68a9-4b49-8201-aab512cf57fd",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Você é um analista sênior. Você receberá uma lista consolidada de clientes e seus respectivos dados de consumo. Sua tarefa é criar um único relatório estruturado. Analise o grupo como um todo, mas aponte individualmente no campo 'analise_detalhada' os insights de cada um conforme o esquema definido.\n\nAnalise este lote de dados: {{ JSON.stringify($json) }}",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        660,
+        0
+      ],
+      "id": "745d719b-2398-44ff-b6c7-2897b4571ec4",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        520,
+        260
+      ],
+      "id": "34e7b49e-c0b6-47b6-8cc1-14f90c26cad0",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "47InXFTumRwxnlYW",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"relatorio_geral\": {\n    \"data_referencia\": \"string (ex: Janeiro 2026)\",\n    \"resumo_executivo\": \"string (analise macro do parque de clientes)\",\n    \"analise_detalhada\": [\n      {\n        \"cliente\": \"string\",\n        \"last_3m_avg_kwh\": \"number\",\n        \"status\": \"string (normal/outlier)\",\n        \"observacao_tecnica\": \"string (explicacao breve do comportamento)\"\n      }\n    ],\n    \"quantidade_outliers\": \"number\",\n    \"recomendacao_imediata\": \"string\"\n  }\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        920,
+        260
+      ],
+      "id": "9facfe01-74a4-42f2-af4b-7340068ee1ae",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        460,
+        0
+      ],
+      "id": "6b30bd9e-0ec8-468a-991b-5653295d0177",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = items[0].json.output.relatorio_geral;\n\n// Contagem precisa via código\nconst outliersReais = data.analise_detalhada.filter(item => \n    item.status.toLowerCase().includes('outlier')\n).length;\n\nconst report = {\n    ...data,\n    quantidade_outliers: outliersReais\n};\n\nconst html = `\n<!DOCTYPE html>\n<html lang=\"pt-br\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Relatório EnergyDB</title>\n    <script src=\"https://cdn.tailwindcss.com\"></script>\n</head>\n<body class=\"bg-slate-900 text-slate-100 p-6\">\n    <div class=\"max-w-5xl mx-auto\">\n        <header class=\"flex justify-between items-center border-b border-slate-700 pb-6 mb-8\">\n            <div>\n                <h1 class=\"text-3xl font-bold text-emerald-400 text-nowrap\">⚡ EnergyDB Analytics</h1>\n                <p class=\"text-slate-400\">Referência: ${report.data_referencia}</p>\n            </div>\n            <div class=\"bg-slate-800 p-4 rounded-xl border border-slate-700 text-center min-w-[150px]\">\n                <span class=\"block text-xs uppercase text-slate-500 font-semibold\">Outliers</span>\n                <span class=\"text-3xl font-bold ${report.quantidade_outliers > 0 ? 'text-red-400' : 'text-emerald-400'}\">\n                    ${report.quantidade_outliers}\n                </span>\n            </div>\n        </header>\n\n        <div class=\"bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-2xl\">\n            <table class=\"w-full text-left border-collapse\">\n                <thead class=\"bg-slate-700/50\">\n                    <tr>\n                        <th class=\"p-4 font-semibold text-slate-300\">Cliente</th>\n                        <th class=\"p-4 font-semibold text-slate-300 text-center text-nowrap\">Consumo Médio (3m)</th>\n                        <th class=\"p-4 font-semibold text-slate-300 text-center\">Status</th>\n                        <th class=\"p-4 font-semibold text-slate-300\">Observação Técnica</th>\n                    </tr>\n                </thead>\n                <tbody class=\"divide-y divide-slate-700\">\n                    ${report.analise_detalhada.map(item => `\n                        <tr class=\"hover:bg-slate-700/30 transition-colors\">\n                            <td class=\"p-4 font-medium border-r border-slate-700/50\">${item.cliente}</td>\n                            <td class=\"p-4 text-center font-mono text-emerald-400\">\n                                ${item.last_3m_avg_kwh ? Number(item.last_3m_avg_kwh).toFixed(2) : '---'}\n                            </td>\n                            <td class=\"p-4 text-center\">\n                                <span class=\"px-4 py-1.5 rounded-full text-sm font-bold uppercase inline-block whitespace-nowrap ${\n                                    item.status === 'normal' \n                                        ? 'bg-emerald-500/20 text-emerald-400' \n                                        : item.status.toLowerCase().includes('outlier')\n                                            ? 'bg-red-500/20 text-red-400' \n                                            : 'bg-amber-500/20 text-amber-400'\n                                }\">\n                                    ${item.status}\n                                </span>\n                            </td>\n                            <td class=\"p-4 text-sm text-slate-400 italic\">${item.observacao_tecnica}</td>\n                        </tr>\n                    `).join('')}\n                </tbody>\n            </table>\n        </div>\n    </div>\n</body>\n</html>\n`;\n\nreturn [{ json: { html } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "b7e9a047-d66d-4e92-bc8f-5efa918b667c",
+      "name": "Code"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bba79c4f-fd24-4303-a39d-1d332cc8bf24",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "572b1c4b6917badfd1acb3050098e7e6c1981556fbc8fbfedeaacb19009b1465"
+  },
+  "id": "2k5KIzRsBr4AuuEe",
+  "tags": []
+}

@@ -1,0 +1,575 @@
+{
+  "name": "Data Load WorkFlow",
+  "nodes": [
+    {
+      "parameters": {
+        "binaryPropertyName": "Upload"
+      },
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "e4fea929-9da6-4850-a423-288cd5decf55",
+      "name": "Compression"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Create an empty array to store our separated files\nlet results = [];\n// Loop through each item that comes into this node\nfor (const item of items) {\n\n// Loop through each binary file attached to this item\n// Object.keys(item.binary Il 0) gets all the file names\n// The lI 0 prevents errors if there's no binary data\nfor (const key of Object.keys(item.binary || {})) {\n// For each file, create a new separate item and add it to results\nresults.push({\n// The json section holds the metadata we want to access later\njson: {\n  fileName: item.binary[key].fileName, // Store the filename so we can use it for routing\n},\n// The binary section holds the actual file data\nbinary: {\ndata: item.binary[key], // This is the file itself\n},\n});\n}\n}\n// Return all the separated files as individual items\n// If 1 item had 4 files attached, we now have 4 separate items\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        0
+      ],
+      "id": "55e0fed8-3e9a-48b7-91f5-ee69c6bbc80f",
+      "name": "Split CSV Files"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.fileName }}",
+                    "rightValue": "clientes.csv",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "797de471-52c8-4996-9739-45beefc6a461"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Customers"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0cc7fc3c-23e0-459e-891b-7e3f2d54bab0",
+                    "leftValue": "={{ $json.fileName }}",
+                    "rightValue": "contratos.csv",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Contracts"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "917a1a5e-49c7-4965-98b5-17cbbaabfc3d",
+                    "leftValue": "={{ $json.fileName }}",
+                    "rightValue": "leituras.csv",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Readings"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        680,
+        0
+      ],
+      "id": "ecb64e82-8435-4efd-b9c7-3f3cb851e5ef",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        -200
+      ],
+      "id": "65bb4735-37b3-4076-a539-250a989ae8c0",
+      "name": "Customers"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "d9c23f92-9469-4180-9e9d-97204f39f85f",
+      "name": "Contracts"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        200
+      ],
+      "id": "14c54b7e-5823-4751-8190-6875b70b4725",
+      "name": "Readings"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "customers",
+          "mode": "list",
+          "cachedResultName": "customers"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "name": "={{ $json.name }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": true
+            },
+            {
+              "id": "deleted_at",
+              "displayName": "deleted_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1420,
+        -200
+      ],
+      "id": "9c435abf-93d1-4e06-85cc-4243d9ff78e7",
+      "name": "UPSERT Customers",
+      "credentials": {
+        "postgres": {
+          "id": "BVyOMgucaMmC6s4l",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "contracts",
+          "mode": "list",
+          "cachedResultName": "contracts"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_active": "={{ $json.is_active }}",
+            "id": "={{ $json.id }}",
+            "customer_id": "={{ $json.customer_id }}",
+            "start_date": "={{ $json.start_date }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "customer_id",
+              "displayName": "customer_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "start_date",
+              "displayName": "start_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": true
+            },
+            {
+              "id": "deleted_at",
+              "displayName": "deleted_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1420,
+        0
+      ],
+      "id": "5a6eb552-3926-46fa-b021-c32258c75f85",
+      "name": "UPSERT Contracts",
+      "credentials": {
+        "postgres": {
+          "id": "BVyOMgucaMmC6s4l",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "readings",
+          "mode": "list",
+          "cachedResultName": "readings"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "contract_id": "={{ $json.contract_id }}",
+            "ref_date": "={{ $json.ref_date }}",
+            "reading_kwh": "={{ $json.reading_kwh }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "contract_id",
+              "displayName": "contract_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "ref_date",
+              "displayName": "ref_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "reading_kwh",
+              "displayName": "reading_kwh",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1420,
+        200
+      ],
+      "id": "5b71357d-3a51-4dc1-8941-3f95b44e4f8a",
+      "name": "UPSERT Readings",
+      "credentials": {
+        "postgres": {
+          "id": "BVyOMgucaMmC6s4l",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Data Load Form",
+        "formDescription": "Use this form to insert Customer, Contracts or Readings data on the database. Select a zip file .csv corresponding data.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Upload",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": ".zip",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Insert data"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -40,
+        0
+      ],
+      "id": "0708837e-0fbd-42ed-a674-d168b8d4e883",
+      "name": "On form submission",
+      "webhookId": "5fd731fd-0bbb-4786-8aa5-d8a7e6979173"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Compression": {
+      "main": [
+        [
+          {
+            "node": "Split CSV Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split CSV Files": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Customers",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Contracts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Readings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customers": {
+      "main": [
+        [
+          {
+            "node": "UPSERT Customers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contracts": {
+      "main": [
+        [
+          {
+            "node": "UPSERT Contracts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Readings": {
+      "main": [
+        [
+          {
+            "node": "UPSERT Readings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Compression",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "92c06c11-df57-4a61-ba15-049ce7a09d66",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "572b1c4b6917badfd1acb3050098e7e6c1981556fbc8fbfedeaacb19009b1465"
+  },
+  "id": "J0H2EdHeS1lt4If6",
+  "tags": []
+}
