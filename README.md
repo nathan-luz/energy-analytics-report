@@ -185,6 +185,7 @@ Alternativamente, você pode visualizar os resultados através de um dashboard i
 * Gestão de Contratos: Visualização dos contratos ativos.
 * Filtragem Dinâmica: Mecanismo de busca instantânea por nome de cliente ou status.
 * Visualização Detalhada: Acesso a informações gráficas detalhadas de cada contrato e cliente.
+* Visualização Interativa: Para melhor visualização dos dados adicione ou remova itens do gráfico conforme necessário.
 * Exportação de Relatórios: Geração de relatórios em formatos CSV e PDF para análises externas.
 * Exportação de Gráficos: Cópia dos gráficos em imagem para apresentações.
 * Dark/Light Mode: Alternância entre temas escuro e claro para melhor experiência visual.
