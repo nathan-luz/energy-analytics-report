@@ -71,7 +71,7 @@ def upgrade() -> None:
 
     for table in ['customers', 'contracts', 'readings']:
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;")
-        op.execute(f"GRANT SELECT, INSERT, READ ON {table} TO n8n_api_user;")
+        op.execute(f"GRANT SELECT, INSERT ON {table} TO n8n_api_user;")
 
     # Política RLS: Impedir que o n8n veja dados "deletados" ou contratos inativos
     op.execute("""
