@@ -51,8 +51,8 @@ Opcionalmente, o projeto contempla a geração de um dashboard interativo para a
 
 #### 1. Clonagem do Repositório
 ```sh   
-  $ git clone [https://github.com/nathan-luz/energy-analytics-report.git](https://github.com/nathan-luz/energy-analytics-report.git)
-  $ cd energy-analytics-report
+  git clone [https://github.com/nathan-luz/energy-analytics-report.git](https://github.com/nathan-luz/energy-analytics-report.git)
+
 ```
 #### 2. Provisionamento do Ambiente de Execução
 
@@ -60,58 +60,133 @@ Utiliza-se o gerenciador de pacotes uv para a otimização do ecossistema de dep
 
 **Windows (PowerShell)**
 ```sh
-  $ powershell -c "irm [https://astral.sh/uv/install.ps1](https://astral.sh/uv/install.ps1) | iex"
-  $ uv venv
-  $ .\.venv\Scripts\activate
-  $ uv sync
+  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+```sh
+  uv venv
+```
+```sh
+  .\.venv\Scripts\activate
+```
+```sh
+  uv sync
 ```
 **MacOS / Linux**
 ```sh
-  $ curl -LsSf [https://astral.sh/uv/install.sh](https://astral.sh/uv/install.sh) | sh
-  $ uv venv
-  $ source .venv/bin/activate
-  $ uv sync
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+```sh
+  uv venv
+```
+```sh
+  source .venv/bin/activate
+```
+```sh
+  uv sync
+```
+
+## 🚀 Inicialização do Ambiente
+
+Após configurar o ambiente Python com o `uv`, siga os passos abaixo para preparar o banco de dados.
+
+### 1. Provisionamento da Infraestrutura (Docker)
+Certifique-se de que o Docker e o Docker Compose estão instalados. Este comando iniciará a instância do PostgreSQL em segundo plano:
+
+```bash
+  docker-compose up -d
 ```
 ### 🗄️ Camada de Persistência e Migrações
 
-É imperativo que a instância do PostgreSQL esteja operacional e que as configurações no arquivo alembic.ini reflitam as credenciais do ambiente local.
+É imperativo que a instância do PostgreSQL esteja operacional e que as configurações no arquivo alembic.ini reflitam as 
+credenciais do ambiente local.
+Para isso garanta que as variáveis de ambiente estejam devidamente configuradas em um arquivo .env ou no shell de execução:
 
-Execução das migrações de esquema:
-```sh
-  $ uv run alembic upgrade head
+```env
+# Database Credentials
+POSTGRES_USER=energy_admin
+POSTGRES_PASSWORD=db_strong_password_123
+POSTGRES_DB=energy_db
+
+# n8n Credentials
+N8N_USER=energy_admin
+N8N_PASSWORD=n8n_strong_password_123
+
+DATABASE_URL=postgresql://energy_admin:db_strong_password_123@localhost:5432/energy_db
 ```
-📊 Ingestão de Dados (Seed)
+Após configuradas, execute as migrações de esquema:
+```sh
+  uv run alembic upgrade head
+```
+### Acesso à Interface n8n
 
-Para a correta alimentação do banco com o histórico referente ao biênio 2025-2026:
+Após subir o container, o n8n estará disponível no seu navegador:
+```
+    http://localhost:5678
+```
 
-Acesse o diretório data/ contendo: customers_seed.csv, contracts_seed.csv e readings_seed.csv.
 
-Compactação: Consolide os referidos arquivos em um diretório comprimido intitulado Archive.zip.
+O n8n solicitará a **criação de uma conta de proprietário**. Estes dados serão armazenados apenas no seu volume local do Docker.
 
-Importe o fluxo Data_Load_Workflow.json no n8n e proceda com o disparo do gatilho de entrada através do upload do arquivo .zip.
+#### Importação dos Fluxos (Workflows)
+O projeto contém dois fluxos principais que precisam ser importados manualmente para o n8n:
 
-🤖 Orquestração via n8n
+1. No menu lateral esquerdo, clique em **Workflows**.
+2. Clique no botão de opções (três pontos ou seta no canto superior direito) e selecione **Import from File**.
+3. Importe os seguintes arquivos localizados na pasta `n8n/workflows` do repositório:
+    * `Data_Load_Workflow.json`: Responsável por processar o `.zip` e popular o banco.
+    * `Report_Generator.json`: Responsável pelo cálculo de Z-Score e geração de insights via LLM.
+    * Recomenda-se importar os fluxos em workflows separados para evitar conflitos.
 
-Importação de Fluxo: Realize a importação do arquivo Report_Generator.json na plataforma n8n.
+#### Configuração de Credenciais
+Para que os nós (nodes) funcionem corretamente, você deve configurar suas credenciais locais dentro do n8n:
 
-Parametrização de Credenciais:
+* **Postgres Connection:** Edite qualquer nó de banco de dados e insira os dados configurados no seu arquivo `.env` (Host: `postgres`, Database: `energy_db`, etc.).
+* **AI Provider (Google Gemini ou OpenAI):** No workflow de geração de relatórios, configure a sua **API Key** no nó de IA para permitir que o modelo analise os outliers detectados.
 
-Estabeleça a conexão no nó Postgres com os parâmetros da instância local.
 
-Configure o provedor de IA (Google Gemini ou OpenAI) com as respectivas chaves de API.
+#### 📊 Ingestão de Dados (Seed)
 
-Acesso ao Sistema: O fluxo disponibilizará um endpoint de Webhook. A renderização do relatório ocorrerá mediante o acesso a esta URL via navegador.
+Para alimentação do banco utilize os dados de seed fornecidos(`data/Archive.zip`). Ou crie um arquivo .zip com os dados desejados, obedecendo
+a mesma estrutura de colunas e tipos contida nos arquivos .csv em `data/`
 
-📈 Painel de Análise de Resultados
+* Abra o workflow `Data_Load_Workflow` no n8n e execute-o. 
+* Na janela que se abrir, selecione o arquivo `.zip` com os dados e clique em **Insert Data**.
 
-O artefato visual resultante apresenta funcionalidades avançadas de interface:
+Dessa forma, os dados serão processados e inseridos no banco de dados.
 
-Filtragem Dinâmica: Mecanismo de busca instantânea por nomenclatura de cliente, operando sem a necessidade de novos ciclos de requisição da página.
+### 📈 Acesso ao dados de Análise
 
-Sincronização Sob Demanda: Implementação de botão de atualização funcional que reativa o Webhook, assegurando a paridade dos dados exibidos com o estado atual do banco de dados.
+Para acessar a análise dos dados:
+* Abra o workflow `Report_Generator` no n8n e execute-o. Dessa forma o WebHook estará pronto para receber requisições.
+* Utilize uma ferramenta como cURL, Postman ou Insomnia para enviar uma requisição `GET` ao endpoint do WebHook.
+```  http://localhost:5678/webhook/energy-report```
 
-Quantificação de Anomalias: Sumarização imediata e categorização de desvios críticos para suporte à tomada de decisão executiva.
+#### Via Terminal (cURL)
+```bash
+curl -X GET http://localhost:5678/webhook-test/generate-usage-report
+```
 
-👥 Expediente e Governança
+#### Via Postman / Insomnia
 
-Este projeto foi concebido como um estudo de caso avançado voltado à engenharia de dados e à automação inteligente de processos industriais e comerciais.
+- Crie uma nova requisição do tipo GET.
+- Cole a URL: http://localhost:5678/webhook-test/generate-usage-report.
+- Clique em Send.
+
+### 📊 Dashboard Interativo (Opcional)
+
+Alternativamente, você pode visualizar os resultados através de um dashboard interativo.
+- Acesse o dashboard via navegador:
+``` http://localhost:5678/webhook-test/generate-usage-report. ```
+
+### Funcionalidades do Dashboard
+
+* Ordenação por campos: Organização dos dados por ordem crescente ou decrescente de qualquer campo.
+* Quantificação de Outliers: Sumarização imediata para suporte à tomada de decisão executiva.
+* Gestão de Contratos: Visualização dos contratos ativos.
+* Filtragem Dinâmica: Mecanismo de busca instantânea por nome de cliente ou status.
+* Visualização Detalhada: Acesso a informações gráficas detalhadas de cada contrato e cliente.
+* Exportação de Relatórios: Geração de relatórios em formatos CSV e PDF para análises externas.
+* Exportação de Gráficos: Cópia dos gráficos em imagem para apresentações.
+* Dark/Light Mode: Alternância entre temas escuro e claro para melhor experiência visual.
+
+
