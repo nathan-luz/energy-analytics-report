@@ -30,7 +30,7 @@ comum do cliente, indicando um consumo entre os 6.7% mais alto ou mais baixo do 
 * **Decisão de Projeto:** A escolha da análise do Z-Score foi fundamentada na minimização de falsos positivos ou falsos 
 negativos, assegurando que apenas desvios significativos, conforme o consumo daquele cliente, sejam reportados para análise. 
 Uma análise percentual poderia capturar variações normais de clientes com perfil de baixo consumo enquanto negligenciaria desvios relevantes em perfis de alto consumo. Já uma análise baseada em desvios absolutos poderia não considerar a variabilidade inerente ao comportamento de consumo de cada cliente.
-
+* **Média Recente**: Seguindo as diretrizes do case, a média utilizada foca nos últimos 3 meses. Clientes com no mínimo uma leitura de consumo neste período terão a média cálculada com os dados existentes. Clientes sem nenhum consumo nesse período são automaticamente excluídos da análise, garantindo relevância e precisão na detecção de anomalias.
 ### Segurança via RLS (Row Level Security): 
 A integridade e a restrição de acesso são asseguradas pela implementação de políticas de segurança em nível de linha no PostgreSQL. Tal mecanismo garante que as identidades de API visualizem estritamente os registros vinculados a contratos vigentes e ativos, impedindo o acesso não autorizado a dados de terceiros.
 
