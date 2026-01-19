@@ -10,33 +10,12 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        20,
-        0
+        -40,
+        500
       ],
-      "id": "9826410d-f3d4-4f00-8ab3-57d6fcdcb8a4",
-      "name": "Webhook",
+      "id": "2f1c3115-54f2-424d-9578-f45a499cfc6c",
+      "name": "Webhook1",
       "webhookId": "7020ef71-91b4-4838-8019-95aa626f5fea"
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "WITH stats_calculadas AS (\n    SELECT\n        c.name AS client_name,\n        AVG(r.reading_kwh) FILTER (WHERE r.ref_date >= CURRENT_DATE - INTERVAL '3 months') AS last_3m_avg,\n        AVG(r.reading_kwh) AS historical_avg,\n        COALESCE(STDDEV(r.reading_kwh), 0) AS stddev\n    FROM customers c\n    JOIN contracts ct ON c.id = ct.customer_id\n    JOIN readings r ON ct.id = r.contract_id\n    GROUP BY c.name\n)SELECT\n    client_name,\n    ROUND(last_3m_avg::numeric, 2) AS last_3m_avg_kwh,\n    ROUND(historical_avg::numeric, 2) AS historical_avg_kwh,\n    stddev,\n\n    CASE\n        WHEN stddev = 0 THEN 'no historical data'\n        WHEN last_3m_avg IS NULL THEN 'no recent data'\n        WHEN ABS((last_3m_avg - historical_avg) / stddev) > 1.5 THEN 'outlier'\n        ELSE 'normal'\n    END AS status FROM stats_calculadas;\n",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        240,
-        0
-      ],
-      "id": "3d676695-54ef-4e98-bad7-dc1bd64e6fde",
-      "name": "Postgres",
-      "credentials": {
-        "postgres": {
-          "id": "BVyOMgucaMmC6s4l",
-          "name": "Postgres account"
-        }
-      }
     },
     {
       "parameters": {
@@ -56,27 +35,31 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.2,
       "position": [
-        1420,
-        0
+        2140,
+        340
       ],
-      "id": "cf85d727-68a9-4b49-8201-aab512cf57fd",
-      "name": "Respond to Webhook"
+      "id": "c698187a-e49a-4dde-aea4-967b8e8b43b4",
+      "name": "Respond to Webhook1"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Você é um analista sênior. Você receberá uma lista consolidada de clientes e seus respectivos dados de consumo. Sua tarefa é criar um único relatório estruturado. Analise o grupo como um todo, mas aponte individualmente no campo 'analise_detalhada' os insights de cada um conforme o esquema definido.\n\nAnalise este lote de dados: {{ JSON.stringify($json) }}",
+        "text": "=Analise os seguintes dados e gere o relatório: {{ JSON.stringify($json) }}\nA data referência é: {{ $now.toFormat('yyyy-MM-01') }}",
         "hasOutputParser": true,
-        "options": {}
+        "options": {
+          "systemMessage": "Você é um analista especialista em eficiência energética. Seu objetivo é gerar um relatório executivo curto. Identifique o impacto técnico baseado no Z-Score."
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.9,
       "position": [
-        660,
-        0
+        700,
+        500
       ],
-      "id": "745d719b-2398-44ff-b6c7-2897b4571ec4",
-      "name": "AI Agent"
+      "id": "7fbc2221-6b0a-4d6e-aaa7-a2c11a103dec",
+      "name": "AI Agent1",
+      "retryOnFail": true,
+      "maxTries": 5
     },
     {
       "parameters": {
@@ -90,11 +73,11 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        520,
-        260
+        560,
+        760
       ],
-      "id": "34e7b49e-c0b6-47b6-8cc1-14f90c26cad0",
-      "name": "OpenAI Chat Model",
+      "id": "8b4cb961-ad85-476a-8628-558531761412",
+      "name": "OpenAI Chat Model1",
       "credentials": {
         "openAiApi": {
           "id": "47InXFTumRwxnlYW",
@@ -104,70 +87,263 @@
     },
     {
       "parameters": {
-        "jsonSchemaExample": "{\n  \"relatorio_geral\": {\n    \"data_referencia\": \"string (ex: Janeiro 2026)\",\n    \"resumo_executivo\": \"string (analise macro do parque de clientes)\",\n    \"analise_detalhada\": [\n      {\n        \"cliente\": \"string\",\n        \"last_3m_avg_kwh\": \"number\",\n        \"status\": \"string (normal/outlier)\",\n        \"observacao_tecnica\": \"string (explicacao breve do comportamento)\"\n      }\n    ],\n    \"quantidade_outliers\": \"number\",\n    \"recomendacao_imediata\": \"string\"\n  }\n}"
-      },
-      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
-      "typeVersion": 1.2,
-      "position": [
-        920,
-        260
-      ],
-      "id": "9facfe01-74a4-42f2-af4b-7340068ee1ae",
-      "name": "Structured Output Parser"
-    },
-    {
-      "parameters": {
         "aggregate": "aggregateAllItemData",
         "options": {}
       },
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
       "position": [
-        460,
-        0
+        500,
+        500
       ],
-      "id": "6b30bd9e-0ec8-468a-991b-5653295d0177",
-      "name": "Aggregate"
+      "id": "47a5bd52-5415-410c-aba0-45d4d77e9330",
+      "name": "Aggregate1"
     },
     {
       "parameters": {
-        "jsCode": "const data = items[0].json.output.relatorio_geral;\n\n// Contagem precisa via código\nconst outliersReais = data.analise_detalhada.filter(item => \n    item.status.toLowerCase().includes('outlier')\n).length;\n\nconst report = {\n    ...data,\n    quantidade_outliers: outliersReais\n};\n\nconst html = `\n<!DOCTYPE html>\n<html lang=\"pt-br\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Relatório EnergyDB</title>\n    <script src=\"https://cdn.tailwindcss.com\"></script>\n</head>\n<body class=\"bg-slate-900 text-slate-100 p-6\">\n    <div class=\"max-w-5xl mx-auto\">\n        <header class=\"flex justify-between items-center border-b border-slate-700 pb-6 mb-8\">\n            <div>\n                <h1 class=\"text-3xl font-bold text-emerald-400 text-nowrap\">⚡ EnergyDB Analytics</h1>\n                <p class=\"text-slate-400\">Referência: ${report.data_referencia}</p>\n            </div>\n            <div class=\"bg-slate-800 p-4 rounded-xl border border-slate-700 text-center min-w-[150px]\">\n                <span class=\"block text-xs uppercase text-slate-500 font-semibold\">Outliers</span>\n                <span class=\"text-3xl font-bold ${report.quantidade_outliers > 0 ? 'text-red-400' : 'text-emerald-400'}\">\n                    ${report.quantidade_outliers}\n                </span>\n            </div>\n        </header>\n\n        <div class=\"bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-2xl\">\n            <table class=\"w-full text-left border-collapse\">\n                <thead class=\"bg-slate-700/50\">\n                    <tr>\n                        <th class=\"p-4 font-semibold text-slate-300\">Cliente</th>\n                        <th class=\"p-4 font-semibold text-slate-300 text-center text-nowrap\">Consumo Médio (3m)</th>\n                        <th class=\"p-4 font-semibold text-slate-300 text-center\">Status</th>\n                        <th class=\"p-4 font-semibold text-slate-300\">Observação Técnica</th>\n                    </tr>\n                </thead>\n                <tbody class=\"divide-y divide-slate-700\">\n                    ${report.analise_detalhada.map(item => `\n                        <tr class=\"hover:bg-slate-700/30 transition-colors\">\n                            <td class=\"p-4 font-medium border-r border-slate-700/50\">${item.cliente}</td>\n                            <td class=\"p-4 text-center font-mono text-emerald-400\">\n                                ${item.last_3m_avg_kwh ? Number(item.last_3m_avg_kwh).toFixed(2) : '---'}\n                            </td>\n                            <td class=\"p-4 text-center\">\n                                <span class=\"px-4 py-1.5 rounded-full text-sm font-bold uppercase inline-block whitespace-nowrap ${\n                                    item.status === 'normal' \n                                        ? 'bg-emerald-500/20 text-emerald-400' \n                                        : item.status.toLowerCase().includes('outlier')\n                                            ? 'bg-red-500/20 text-red-400' \n                                            : 'bg-amber-500/20 text-amber-400'\n                                }\">\n                                    ${item.status}\n                                </span>\n                            </td>\n                            <td class=\"p-4 text-sm text-slate-400 italic\">${item.observacao_tecnica}</td>\n                        </tr>\n                    `).join('')}\n                </tbody>\n            </table>\n        </div>\n    </div>\n</body>\n</html>\n`;\n\nreturn [{ json: { html } }];"
+        "respondWith": "text",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        2160,
+        840
+      ],
+      "id": "6fbe6f28-a5d8-4902-901b-51061372ede3",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"relatorio_geral\": {\n    \"data_referencia\": \"string (ex: Janeiro 2026)\",\n    \"resumo_executivo\": \"string (analise macro do parque de clientes)\",\n    \"analise_detalhada\": [\n      {\n        \"cliente\": \"string\",\n        \"consumo_medio_3m\": \"number (last_3m_avg_kwh)\",\n        \"status\": \"string (normal/outlier)\",\n        \"observacao_tecnica\": \"string (explicacao breve do comportamento)\"\n      }\n    ],\n    \"recomendacao_imediata\": \"string\"\n  }\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        940,
+        740
+      ],
+      "id": "c487b833-4446-429e-a9f7-ae06913ee666",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "jsCode": "// O n8n passa os dados dentro de um array de objetos chamado 'items'\nfor (const item of items) {\n  // Acessa o caminho específico do seu JSON\n  const relatorio = item.json.output.relatorio_geral;\n  const analise = relatorio.analise_detalhada;\n\n  // Filtra o array contando apenas onde o status é 'outlier'\n  const contagem = analise.filter(cliente => cliente.status === 'outlier').length;\n\n  // Adiciona a nova chave. \n  // Nota: Objetos JS não garantem ordem visual, mas ao converter para JSON \n  // ele aparecerá no corpo do objeto.\n  relatorio.quantidade_outliers = contagem.toString();\n}\n\nreturn items;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1040,
-        0
+        1860,
+        840
       ],
-      "id": "b7e9a047-d66d-4e92-bc8f-5efa918b667c",
-      "name": "Code"
+      "id": "b8545630-3e33-4c98-85c7-b822d2e90f46",
+      "name": "Contagem de Outliers"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = items[0].json;\n\n// 1. Função para gerar os últimos 12 meses cronologicamente\nconst gerarLabelsCronologicos = (dataRef) => {\n    const mesesNomes = [\"Jan\", \"Fev\", \"Mar\", \"Abr\", \"Mai\", \"Jun\", \"Jul\", \"Ago\", \"Set\", \"Out\", \"Nov\", \"Dez\"];\n    const labels = [];\n    const chavesBusca = [];\n    \n    let dataAtual = new Date(dataRef);\n    \n    for (let i = 11; i >= 0; i--) {\n        let d = new Date(dataAtual.getFullYear(), dataAtual.getMonth() - i, 1);\n        labels.push(`${mesesNomes[d.getMonth()]}/${d.getFullYear().toString().substring(2)}`);\n        \n        const ano = d.getFullYear();\n        const mes = (d.getMonth() + 1).toString().padStart(2, '0');\n        chavesBusca.push(`${ano}-${mes}`);\n    }\n    return { labels, chavesBusca };\n};\n\nconst { labels: labelsGrafico, chavesBusca } = gerarLabelsCronologicos(input.data_referencia);\nconst clientDataMap = {};\n\nconst generateRows = (analise) => {\n  return analise.map((item, index) => {\n    let statusClass = 'status-normal';\n    if (item.status === 'outlier') statusClass = 'status-outlier';\n    if (item.status === 'no recent data') statusClass = 'status-no-data';\n\n    const contrato = item.historico_contratos?.[0] || {};\n    const contractId = contrato.contract_id || \"N/A\";\n    const isActive = contrato.is_active === true; // Pega o is_active do JSON\n    const readings = contrato.readings || {};\n    \n    const finalValues = chavesBusca.map(chave => {\n        const dataEncontrada = Object.keys(readings).find(k => k.startsWith(chave));\n        return dataEncontrada ? readings[dataEncontrada] : 0;\n    });\n\n    clientDataMap[index] = {\n        cliente: item.cliente,\n        labels: labelsGrafico,\n        values: finalValues,\n        isActive: isActive // Passamos para o mapa do front-end\n    };\n\n    const activeBadge = isActive \n        ? '<span class=\"contract-badge active\">Contrato Ativo</span>' \n        : '<span class=\"contract-badge inactive\">Contrato Inativo</span>';\n\n    return `\n      <tr class=\"clickable-row\" onclick=\"handleRowClick(${index})\">\n        <td><strong>${item.cliente}</strong></td>\n        <td>${item.consumo_medio_3m}</td>\n        <td><span class=\"status-badge ${statusClass}\">${item.status}</span></td>\n        <td>${item.observacao_tecnica}</td>\n      </tr>\n      <tr id=\"details-${index}\" class=\"details-row\" style=\"display:none;\">\n        <td colspan=\"4\">\n            <div class=\"details-content\">\n                <div style=\"display: flex; align-items: center; gap: 10px; margin-bottom: 10px;\">\n                    <p style=\"margin:0;\"><strong>ID:</strong> <code>${contractId}</code></p>\n                    ${activeBadge}\n                </div>\n                <div class=\"chart-container\">\n                    <canvas id=\"chart-${index}\"></canvas>\n                </div>\n            </div>\n        </td>\n      </tr>\n    `;\n  }).join('');\n};\n\nconst rowsHtml = generateRows(input.analise_detalhada);\n\nconst htmlContent = `\n<!DOCTYPE html>\n<html lang=\"pt-br\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Dashboard de Consumo</title>\n    <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n    <style>\n        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; padding: 20px; color: #333; }\n        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); max-width: 1100px; margin: auto; }\n        h1 { color: #1a73e8; margin: 0 0 5px 0; }\n        .ref-date { color: #5f6368; margin-bottom: 25px; font-size: 0.95em; }\n        table { width: 100%; border-collapse: collapse; margin-top: 10px; }\n        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }\n        th { background: #f8f9fa; color: #5f6368; text-transform: uppercase; font-size: 0.75em; letter-spacing: 1px; }\n        .clickable-row { cursor: pointer; transition: background 0.2s; }\n        .clickable-row:hover { background-color: #f1f8ff; }\n        .details-row { background-color: #fafafa; }\n        .details-content { padding: 20px; border-left: 5px solid #1a73e8; background: #fff; margin: 10px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }\n        .chart-container { position: relative; height: 280px; width: 100%; }\n        \n        /* Badges */\n        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.7em; font-weight: bold; }\n        .status-normal { background: #e6f4ea; color: #1e8e3e; }\n        .status-outlier { background: #fce8e6; color: #d93025; }\n        .status-no-data { background: #fef7e0; color: #f9ab00; }\n        \n        .contract-badge { font-size: 0.65em; padding: 3px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; }\n        .active { background: #1a73e8; color: #fff; }\n        .inactive { background: #dadce0; color: #5f6368; }\n\n        code { background: #f1f3f4; padding: 2px 5px; border-radius: 4px; font-size: 0.9em; }\n    </style>\n</head>\n<body>\n    <div class=\"card\">\n        <h1>Dashboard de Gestão Energética</h1>\n        <p class=\"ref-date\">Mês de Análise: <strong>${input.data_referencia}</strong></p>\n        <table>\n            <thead>\n                <tr>\n                    <th>Cliente</th>\n                    <th>Média (3m)</th>\n                    <th>Status</th>\n                    <th>Observação Técnica</th>\n                </tr>\n            </thead>\n            <tbody>\n                ${rowsHtml}\n            </tbody>\n        </table>\n    </div>\n\n    <script>\n        const clientData = ${JSON.stringify(clientDataMap)};\n        const charts = {};\n\n        function handleRowClick(index) {\n            const row = document.getElementById('details-' + index);\n            const isOpening = (row.style.display === 'none');\n            document.querySelectorAll('.details-row').forEach(r => r.style.display = 'none');\n            if (isOpening) {\n                row.style.display = 'table-row';\n                renderChart(index);\n            }\n        }\n\n        function renderChart(index) {\n            const data = clientData[index];\n            if (!data) return;\n\n            const ctx = document.getElementById('chart-' + index).getContext('2d');\n            if (charts[index]) charts[index].destroy();\n\n            // Muda a cor se o contrato estiver inativo\n            const color = data.isActive ? '#1a73e8' : '#9aa0a6';\n            const bgColor = data.isActive ? 'rgba(26, 115, 232, 0.08)' : 'rgba(154, 160, 166, 0.1)';\n\n            charts[index] = new Chart(ctx, {\n                type: 'line',\n                data: {\n                    labels: data.labels,\n                    datasets: [{\n                        label: 'Consumo kWh',\n                        data: data.values,\n                        borderColor: color,\n                        backgroundColor: bgColor,\n                        borderWidth: 3,\n                        pointRadius: 5,\n                        fill: true,\n                        tension: 0.3\n                    }]\n                },\n                options: {\n                    responsive: true,\n                    maintainAspectRatio: false,\n                    plugins: { legend: { display: false } },\n                    scales: {\n                        y: { beginAtZero: true, grid: { color: '#f0f0f0' } },\n                        x: { grid: { display: false } }\n                    }\n                }\n            });\n        }\n    </script>\n</body>\n</html>\n`;\n\nreturn [{ json: { html: htmlContent } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        340
+      ],
+      "id": "0d983a58-eff0-41bd-bc5e-cdbdc30de1fe",
+      "name": "Gerador HTML"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH stats_calculadas AS (\n    SELECT\n        c.name AS client_name,\n        AVG(r.reading_kwh) FILTER (WHERE r.ref_date >= CURRENT_DATE - INTERVAL '3 months') AS last_3m_avg,\n        AVG(r.reading_kwh) AS historical_avg,\n        COALESCE(STDDEV(r.reading_kwh), 0) AS stddev\n    FROM customers c\n    JOIN contracts ct ON c.id = ct.customer_id\n    JOIN readings r ON ct.id = r.contract_id\n    GROUP BY c.name\n)SELECT\n    client_name,\n    ROUND(last_3m_avg::numeric, 2) AS last_3m_avg_kwh,\n    ROUND(historical_avg::numeric, 2) AS historical_avg_kwh,\n    stddev,\n    ABS((last_3m_avg - historical_avg) / stddev) as z_score,\n    CASE\n        WHEN stddev = 0 THEN 'no historical data'\n        WHEN last_3m_avg IS NULL THEN 'no recent data'\n        WHEN ABS((last_3m_avg - historical_avg) / stddev) > 1.5 THEN 'outlier'\n        ELSE 'normal'\n    END AS status FROM stats_calculadas;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        280,
+        500
+      ],
+      "id": "ab4b63df-92ac-4f36-8843-2315173a9beb",
+      "name": "Query Dados Clientes",
+      "credentials": {
+        "postgres": {
+          "id": "BVyOMgucaMmC6s4l",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n    c.id AS client_id,\n    c.name AS client_name,\n    jsonb_agg(\n        jsonb_build_object(\n            'contract_id', co.id,\n            'is_active', co.is_active,\n            'readings', (\n                SELECT jsonb_object_agg(re.ref_date, re.reading_kwh)\n                FROM readings re\n                WHERE re.contract_id = co.id\n            )\n        )\n    ) AS contract_series\nFROM customers c\nJOIN contracts co ON c.id = co.customer_id\nGROUP BY c.id, c.name;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1360,
+        340
+      ],
+      "id": "999ea959-aa8f-4a12-bd48-b4b32a8565c5",
+      "name": "Query Series Consumo",
+      "credentials": {
+        "postgres": {
+          "id": "BVyOMgucaMmC6s4l",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import pandas as pd\n\n# 1. Recupera os dados dos inputs\n# Input 0: Relatório da IA (Structured Output Parser)\n# Input 1: Dados do Postgres (Leituras agregadas)\nrelatorio_input = _('AI Agent1').all()\npostgres_input = _('Query Series Consumo').all()\n\n# 2. Extrai a lista de clientes do relatório da IA\n# Seguindo a estrutura: item['output']['relatorio_geral']['analise_detalhada']\nraw_data = relatorio_input[0].json\nrelatorio_geral = raw_data.get('output', {}).get('relatorio_geral', raw_data.get('relatorio_geral', {}))\nclientes_ia = relatorio_geral.get('analise_detalhada', [])\n\n# 3. Converte os dados do Postgres para um dicionário para busca rápida\n# Chave: nome do cliente (em minúsculas), Valor: contract_series\npostgres_map = {}\nfor item in postgres_input:\n    data = item.json\n    if 'client_name' in data:\n        # Padronizamos a chave para evitar erros de case-sensitive\n        nome_chave = str(data['client_name']).lower().strip()\n        postgres_map[nome_chave] = data.get('contract_series', [])\n\n# 4. Realiza o \"Merge\" manual injetando o histórico\nfor cliente in clientes_ia:\n    # Busca o nome no relatório (campo 'cliente') e tenta achar no mapa do Postgres\n    nome_busca = str(cliente.get('cliente', '')).lower().strip()\n    \n    # Se encontrar no banco de dados, anexa ao campo 'historico_contratos'\n    # Caso contrário, retorna uma lista vazia\n    cliente['historico_contratos'] = postgres_map.get(nome_busca, [])\n\n# 5. Prepara o retorno final mantendo a estrutura do relatório\nreturn {\n    \"data_referencia\": relatorio_geral.get('data_referencia'),\n    \"resumo_executivo\": relatorio_geral.get('resumo_executivo'),\n    \"analise_detalhada\": clientes_ia,\n    \"recomendacao_imediata\": relatorio_geral.get('recomendacao_imediata')\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        340
+      ],
+      "id": "b89a738d-7092-4d23-85f4-78e28d01e86c",
+      "name": "Code",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9987bccd-e3f7-4795-af83-c1de9b172984",
+              "leftValue": "={{ $('Webhook1').item.json.headers.accept }}",
+              "rightValue": "text/html",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1160,
+        500
+      ],
+      "id": "4cf24edb-26da-4ef5-9002-ba21807d88f9",
+      "name": "If"
     }
   ],
   "pinData": {},
   "connections": {
-    "Webhook": {
+    "Webhook1": {
       "main": [
         [
           {
-            "node": "Postgres",
+            "node": "Query Dados Clientes",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Postgres": {
+    "AI Agent1": {
       "main": [
         [
           {
-            "node": "Aggregate",
+            "node": "If",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "AI Agent": {
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contagem de Outliers": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerador HTML": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Dados Clientes": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Series Consumo": {
       "main": [
         [
           {
@@ -178,49 +354,29 @@
         ]
       ]
     },
-    "OpenAI Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Structured Output Parser": {
-      "ai_outputParser": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_outputParser",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Aggregate": {
+    "Code": {
       "main": [
         [
           {
-            "node": "AI Agent",
+            "node": "Gerador HTML",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Respond to Webhook": {
-      "main": [
-        []
-      ]
-    },
-    "Code": {
+    "If": {
       "main": [
         [
           {
-            "node": "Respond to Webhook",
+            "node": "Query Series Consumo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Contagem de Outliers",
             "type": "main",
             "index": 0
           }
@@ -232,7 +388,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "bba79c4f-fd24-4303-a39d-1d332cc8bf24",
+  "versionId": "d6563c9a-6fa4-4f65-84b7-48e8fd568451",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "572b1c4b6917badfd1acb3050098e7e6c1981556fbc8fbfedeaacb19009b1465"
